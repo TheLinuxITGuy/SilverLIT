@@ -4,9 +4,9 @@ on:
     - cron:
         "00 06 * * *" # build at 06:00 UTC every day
         # (20 minutes after last ublue images start building)
+  # No paths-ignore: the build jobs are required status checks on main, so they
+  # must run on every push and PR (a skipped required check blocks merging).
   push:
-    paths-ignore: # don't rebuild if only documentation has changed
-      - "**.md"
 
   pull_request:
   workflow_dispatch: # allow manually triggering builds
