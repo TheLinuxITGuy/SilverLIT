@@ -1,43 +1,91 @@
-# BlueBuild Template &nbsp; [![bluebuild build badge](https://github.com/blue-build/template/actions/workflows/build.yml/badge.svg)](https://github.com/blue-build/template/actions/workflows/build.yml)
+# SilverLIT &nbsp; [![bluebuild build badge](https://github.com/TheLinuxITGuy/SilverLIT/actions/workflows/build.yml/badge.svg)](https://github.com/TheLinuxITGuy/SilverLIT/actions/workflows/build.yml)
 
-See the [BlueBuild docs](https://blue-build.org/how-to/setup/) for quick setup instructions for setting up your own repository based on this template.
+A custom [Aurora](https://getaurora.dev/) OCI desktop image built with [BlueBuild](https://blue-build.org/), tailored for content creation, Linux workflows, and gaming.
 
-After setup, it is recommended you update this README to describe your custom image.
+## What's Included
+
+### System Packages (RPM)
+- **Brave Origin** (`brave-origin`) — Installed natively via Brave's official RPM repository.
+- **Starship** (`starship`) — Pre-configured system-wide with the **Gruvbox Rainbow** preset (`/etc/skel/.config/starship.toml`).
+
+### Pre-Installed System Flatpaks
+Automatically installed from Flathub on first boot via `default-flatpaks`:
+- **OBS Studio** (`com.obsproject.Studio`)
+- **Steam** (`com.valvesoftware.Steam`)
+- **Discord** (`com.discordapp.Discord`)
+- **Audacity** (`org.audacityteam.Audacity`)
+
+---
 
 ## Installation
 
 > [!WARNING]  
-> [This is an experimental feature](https://www.fedoraproject.org/wiki/Changes/OstreeNativeContainerStable), try at your own discretion.
+> Switching to a custom atomic image replaces your base OS deployment. Make sure you have backups and know how to roll back (`rpm-ostree rollback` or selecting the previous boot entry in GRUB) before rebasing.
 
-To rebase an existing atomic Fedora installation to the latest build:
+### Using `bootc` (Recommended on Aurora)
 
-- First rebase to the unsigned image, to get the proper signing keys and policies installed:
+1. Switch to the signed image:
+   ```bash
+   sudo bootc switch ghcr.io/thelinuxitguy/silverlit:stable
+   ```
+2. Reboot to complete the switch:
+   ```bash
+   systemctl reboot
+   ```
+
+### Using `rpm-ostree` (Two-Step Signed Rebase)
+
+If you are rebasing from a stock Fedora Atomic image that does not yet have this repository's signing keys/policies:
+
+1. Rebase to the unsigned image first to install the signing policy and public key:
+   ```bash
+   rpm-ostree rebase ostree-unverified-registry:ghcr.io/thelinuxitguy/silverlit:stable
+   ```
+2. Reboot:
+   ```bash
+   systemctl reboot
+   ```
+3. Rebase to the signed image:
+   ```bash
+   rpm-ostree rebase ostree-image-signed:docker://ghcr.io/thelinuxitguy/silverlit:stable
+   ```
+4. Reboot again:
+   ```bash
+   systemctl reboot
+   ```
+
+---
+
+## Post-Install Apps
+
+For proprietary or Debian-only tools that are best kept outside the base OS image:
+
+- **DaVinci Resolve Studio:** Download and extract the Linux `.zip` from Blackmagic Design, then run Aurora's built-in `davincibox` helper:
+  ```bash
+  ujust install-resolve
   ```
-  rpm-ostree rebase ostree-unverified-registry:ghcr.io/blue-build/template:latest
-  ```
-- Reboot to complete the rebase:
-  ```
-  systemctl reboot
-  ```
-- Then rebase to the signed image, like so:
-  ```
-  rpm-ostree rebase ostree-image-signed:docker://ghcr.io/blue-build/template:latest
-  ```
-- Reboot again to complete the installation
-  ```
-  systemctl reboot
+- **Claude Desktop:** Install in user space via [`claude-desktop-rpm`](https://github.com/ajithakdev/claude-desktop-rpm):
+  ```bash
+  curl -fLO https://github.com/ajithakdev/claude-desktop-rpm/releases/latest/download/claude-desktop-rpm.sh
+  chmod +x claude-desktop-rpm.sh && ./claude-desktop-rpm.sh install
   ```
 
-The `latest` tag will automatically point to the latest build. That build will still always use the Fedora version specified in `recipe.yml`, so you won't get accidentally updated to the next major version.
+---
 
-## ISO
+## ISO Generation
 
-If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/how-to/generate-iso/#_top). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.
+You can generate an offline installer ISO from any Fedora Atomic host using the [BlueBuild ISO instructions](https://blue-build.org/how-to/generate-iso/#_top):
+
+```bash
+bluebuild generate-iso --iso-name silverlit.iso image ghcr.io/thelinuxitguy/silverlit:stable
+```
+
+---
 
 ## Verification
 
-These images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). You can verify the signature by downloading the `cosign.pub` file from this repo and running the following command:
+All images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). You can verify the image signature using the `cosign.pub` file in this repository:
 
 ```bash
-cosign verify --key cosign.pub ghcr.io/blue-build/template
+cosign verify --key cosign.pub ghcr.io/thelinuxitguy/silverlit:stable
 ```
