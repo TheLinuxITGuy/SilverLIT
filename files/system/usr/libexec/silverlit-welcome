@@ -28,8 +28,8 @@ appear in your app launcher shortly.</p>
 MSG
 
 if command -v kdialog >/dev/null 2>&1; then
-    kdialog --title "Welcome to SilverLIT" --msgbox "$message"
+    kdialog --title "Welcome to SilverLIT" --icon silverlit-logo --msgbox "$message"
 elif command -v notify-send >/dev/null 2>&1; then
-    notify-send --app-name=SilverLIT "Welcome to SilverLIT" \
+    notify-send --app-name=SilverLIT --icon=silverlit-logo "Welcome to SilverLIT" \
         "Run 'ujust' in a terminal to see optional extras like DaVinci Resolve and Claude Desktop."
 fi

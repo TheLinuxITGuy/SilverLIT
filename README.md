@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/silverlit-logo.png" alt="SilverLIT logo" width="160">
+</p>
+
 # SilverLIT
 
 A custom atomic desktop Linux image built with [BlueBuild](https://blue-build.org/) on top of [Universal Blue Aurora](https://getaurora.dev/) (Fedora Atomic + KDE Plasma), with The Linux IT Guy's personal taste.
@@ -85,6 +89,7 @@ ujust update
 |---|---|
 | `recipes/common-modules.yml` | Modules shared by every variant |
 | `recipes/recipe.yml`, `recipes/recipe-nvidia.yml` | Per-variant base image |
+| `assets/` | README artwork |
 | `files/system/` | Files copied into the image root (use `/usr` or `/etc`, never `/usr/local` or `/var`) |
 | `files/justfiles/` | `ujust` recipes |
 | `files/scripts/` | Build-time scripts |

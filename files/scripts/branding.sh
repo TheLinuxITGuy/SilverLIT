@@ -16,10 +16,23 @@ sed -i \
     -e 's|^BUG_REPORT_URL=.*|BUG_REPORT_URL="https://github.com/TheLinuxITGuy/SilverLIT/issues"|' \
     "$OS_RELEASE"
 
+# LOGO is an icon name; the icon ships in /usr/share/icons/hicolor/*/apps/silverlit-logo.png
+# and is used by KDE's About This System, among others.
+if grep -q '^LOGO=' "$OS_RELEASE"; then
+    sed -i 's|^LOGO=.*|LOGO=silverlit-logo|' "$OS_RELEASE"
+else
+    echo 'LOGO=silverlit-logo' >> "$OS_RELEASE"
+fi
+
 if grep -q '^DEFAULT_HOSTNAME=' "$OS_RELEASE"; then
     sed -i 's|^DEFAULT_HOSTNAME=.*|DEFAULT_HOSTNAME="silverlit"|' "$OS_RELEASE"
 else
     echo 'DEFAULT_HOSTNAME="silverlit"' >> "$OS_RELEASE"
+fi
+
+# Make sure the new icon is picked up by the icon theme cache.
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -f -t /usr/share/icons/hicolor || true
 fi
 
 echo "os-release now reads:"
