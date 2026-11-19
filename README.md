@@ -72,7 +72,7 @@ Open a new Konsole tab or reload your shell (`exec "$SHELL"`) to activate the Gr
 
 ---
 
-### 3. Install Claude Desktop (Optional)
+### 3. Install Claude Desktop
 
 To install Claude Desktop in `~/.local` with automatic update support:
 
