@@ -1,0 +1,38 @@
+name: inspect-tmp
+on:
+  push:
+    branches: [claude/project-thread-mmp59e]
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Dump branding files from the published image
+        run: |
+          docker run --rm --entrypoint /bin/bash ghcr.io/thelinuxitguy/silverlit:latest -c '
+            set -x
+            cat /usr/lib/os-release
+            ls -la /etc/os-release
+            cat /usr/share/ublue-os/image-info.json
+            ls -la /etc/xdg/ | head -80
+            for f in /etc/xdg/kcm-about-distrorc /usr/share/kcm-about-distrorc /etc/xdg/kdeglobals; do echo "=== $f"; cat "$f"; done
+            echo "=== grep aurora (names only)"
+            grep -rIil "aurora" /etc /usr/share/ublue-os /usr/libexec /usr/bin /usr/share/fastfetch /usr/share/plasma/look-and-feel 2>/dev/null | head -100
+            echo "=== ublue-os tree"
+            find /usr/share/ublue-os -maxdepth 3 | head -150
+            echo "=== fastfetch configs"
+            find / -xdev \( -name "*.jsonc" -path "*fastfetch*" \) 2>/dev/null
+            for f in $(find / -xdev -name "*.jsonc" -path "*fastfetch*" 2>/dev/null); do echo "=== $f"; cat "$f"; done
+            echo "=== profile.d"
+            ls /etc/profile.d; grep -l -i -E "fastfetch|motd|ublue" /etc/profile.d/* 2>/dev/null
+            for f in $(grep -l -i -E "motd|fastfetch" /etc/profile.d/* /usr/libexec/* /usr/bin/* 2>/dev/null | head -10); do echo "=== $f"; cat "$f" | head -80; done
+            echo "=== motd dir"
+            find / -xdev -path "*motd*" -type f 2>/dev/null | grep -v -E "^/proc|^/sys" | head -40
+            for f in $(find /usr/share/ublue-os -path "*motd*" -type f 2>/dev/null | head -10); do echo "=== $f"; cat "$f" | head -60; done
+            echo "=== logos"
+            find /usr/share/pixmaps /usr/share/icons/hicolor/scalable /usr/share/ublue-os -iname "*logo*" 2>/dev/null | head -60
+            ls /usr/share/icons/hicolor/256x256/apps | grep -i -E "logo|silver|aurora|fedora"
+            echo "=== starship"; starship --version; rpm -q starship
+            echo "=== bashrc starship refs"; grep -rn starship /etc/bashrc /etc/profile.d /usr/share/ublue-os 2>/dev/null | head
+          '
