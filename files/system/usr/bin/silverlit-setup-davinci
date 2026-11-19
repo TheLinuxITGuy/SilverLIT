@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Install DaVinci Resolve (free or Studio) inside a davincibox Distrobox container,
+# with GPU acceleration for AMD (ROCm OpenCL) or NVIDIA (CUDA via --nvidia).
+#
+# Usage: silverlit-setup-davinci [/path/to/DaVinci_Resolve_*_Linux.run | /path/to/squashfs-root/AppRun]
+# Easiest way to run it: ujust install-davinci-resolve
+
+CONTAINER_NAME="davincibox"
+CONTAINER_IMAGE="ghcr.io/zelikos/davincibox:latest"
+DOWNLOAD_PAGE="https://www.blackmagicdesign.com/support/family/davinci-resolve-and-fusion"
+DOWNLOADS_DIR="$(xdg-user-dir DOWNLOAD 2>/dev/null || echo "${HOME}/Downloads")"
+INPUT_PATH="${1:-}"
+WORK_DIR=""
+
+cleanup() {
+    if [[ -n "$WORK_DIR" && -d "$WORK_DIR" ]]; then
+        rm -rf "$WORK_DIR"
+    fi
+}
+trap cleanup EXIT
+
+find_installer() {
+    if [[ -n "$INPUT_PATH" ]]; then
+        echo "$INPUT_PATH"
+        return 0
+    fi
+
+    # Newest DaVinci_Resolve_*_Linux.run (free or Studio, any version) in Downloads,
+    # either loose or inside the folder the .zip extracts to.
+    local found
+    found=$(find "$DOWNLOADS_DIR" -maxdepth 3 \( -name "DaVinci_Resolve_*_Linux.run" -o -path "*/squashfs-root/AppRun" \) 2>/dev/null | sort -V | tail -n 1)
+    if [[ -n "$found" ]]; then
+        echo "$found"
+        return 0
+    fi
+
+    return 1
+}
+
+detect_gpu() {
+    # Prints "nvidia", "amd" or "other" based on the PCI vendor of the DRM devices.
+    local vendors=""
+    for v in /sys/class/drm/card*/device/vendor; do
+        [[ -r "$v" ]] && vendors+="$(<"$v") "
+    done
+    if [[ "$vendors" == *0x10de* ]]; then
+        echo nvidia
+    elif [[ "$vendors" == *0x1002* ]]; then
+        echo amd
+    else
+        echo other
+    fi
+}
+
+INSTALLER=$(find_installer) || {
+    echo "Could not find a DaVinci Resolve installer in ${DOWNLOADS_DIR}."
+    echo
+    echo "Blackmagic requires a (free) registration to download it, so this step can't be automated:"
+    echo "  1. Download DaVinci Resolve or DaVinci Resolve Studio for Linux from:"
+    echo "     ${DOWNLOAD_PAGE}"
+    echo "  2. Extract the .zip into ${DOWNLOADS_DIR}"
+    echo "  3. Run this again: ujust install-davinci-resolve"
+    echo
+    echo "Or pass the installer path directly: $(basename "$0") /path/to/DaVinci_Resolve_*_Linux.run"
+    if [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v xdg-open >/dev/null 2>&1; then
+        xdg-open "$DOWNLOAD_PAGE" >/dev/null 2>&1 || true
+    fi
+    exit 1
+}
+
+if [[ "$INSTALLER" == *.run ]]; then
+    echo "==> Extracting AppImage from: $INSTALLER"
+    WORK_DIR=$(mktemp -d /tmp/resolve-extract.XXXXXX)
+    chmod +x "$INSTALLER"
+    (cd "$WORK_DIR" && "$INSTALLER" --appimage-extract >/dev/null)
+    APPRUN_PATH="$WORK_DIR/squashfs-root/AppRun"
+elif [[ "$(basename "$INSTALLER")" == "AppRun" ]]; then
+    APPRUN_PATH="$(realpath "$INSTALLER")"
+else
+    echo "Error: Unsupported file '$INSTALLER'. Expected a .run installer or squashfs-root/AppRun."
+    exit 1
+fi
+
+if [[ ! -f "$APPRUN_PATH" ]]; then
+    echo "Error: AppRun not found at $APPRUN_PATH"
+    exit 1
+fi
+
+GPU="$(detect_gpu)"
+echo "==> Detected GPU vendor: ${GPU}"
+
+if ! distrobox list --no-color | awk -F'|' '{gsub(/ /, "", $2); print $2}' | grep -qx "$CONTAINER_NAME"; then
+    echo "==> Creating $CONTAINER_NAME Distrobox container..."
+    create_args=(-i "$CONTAINER_IMAGE" -n "$CONTAINER_NAME" --yes)
+    if [[ "$GPU" == nvidia ]]; then
+        create_args+=(--nvidia)
+    fi
+    distrobox create "${create_args[@]}"
+else
+    echo "==> Distrobox container '$CONTAINER_NAME' already exists."
+fi
+
+if [[ "$GPU" == amd ]]; then
+    echo "==> Installing AMD ROCm OpenCL support (rocm-opencl, clinfo) inside $CONTAINER_NAME..."
+    distrobox enter "$CONTAINER_NAME" -- sudo dnf install -y rocm-opencl clinfo
+
+    echo "==> Verifying OpenCL GPU detection inside $CONTAINER_NAME..."
+    distrobox enter "$CONTAINER_NAME" -- clinfo | grep -E "Platform Name|Device Name|Number of devices" || true
+fi
+
+echo "==> Running setup-davinci inside $CONTAINER_NAME..."
+distrobox enter "$CONTAINER_NAME" -- setup-davinci "$APPRUN_PATH" distrobox
+
+echo ""
+echo "Done! DaVinci Resolve is now in your application launcher."
+if [[ "$GPU" == amd ]]; then
+    echo "To enable GPU acceleration:"
+    echo "  1. Open DaVinci Resolve -> Preferences -> Memory and GPU"
+    echo "  2. Uncheck 'Auto' next to GPU processing mode and select 'OpenCL'"
+    echo "  3. Check your AMD Radeon GPU, click Save, and restart DaVinci Resolve"
+elif [[ "$GPU" == other ]]; then
+    echo "Note: no AMD or NVIDIA GPU was detected. DaVinci Resolve needs one of them for GPU processing."
+fi

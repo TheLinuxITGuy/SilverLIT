@@ -1,104 +1,95 @@
+<p align="center">
+  <img src="assets/silverlit-logo.png" alt="SilverLIT logo" width="160">
+</p>
+
 # SilverLIT
 
-A custom atomic desktop Linux image built with [BlueBuild](https://blue-build.org/) on top of [Universal Blue Aurora](https://getaurora.dev/) (`ghcr.io/ublue-os/aurora`).
+A custom atomic desktop Linux image built with [BlueBuild](https://blue-build.org/) on top of [Universal Blue Aurora](https://getaurora.dev/) (Fedora Atomic + KDE Plasma), with The Linux IT Guy's personal taste.
 
-## Features
+Everything is set up out of the box: there are no manual post-install steps.
 
-- **Base Image:** Universal Blue Aurora (Fedora Atomic / KDE Plasma)
-- **Pre-installed System Packages:** Brave Browser, Starship prompt
-- **Pre-configured Skeleton (`/etc/skel`):**
-  - Starship prompt configured with the **Gruvbox Rainbow** preset
-  - Custom Konsole profile and defaults
-- **Included Helper Scripts (`/usr/local/bin`):**
-  - `setup-resolve-amd.sh` — Automates installing DaVinci Resolve Studio inside a `davincibox` Distrobox container with AMD ROCm OpenCL GPU acceleration.
+## What's included
 
----
+- **Base:** Universal Blue Aurora (`stable`), with automatic background updates
+- **Apps:** Brave Browser (RPM); OBS Studio, Steam, Discord and Audacity (Flatpaks, installed automatically on first boot)
+- **Terminal:** Starship prompt with the **Gruvbox Rainbow** preset, a Gruvbox Dark Konsole profile and JetBrainsMono Nerd Font, applied to every user, including existing ones
+- **One-command extras** via `ujust`:
+  - `ujust install-davinci-resolve`: DaVinci Resolve (free or Studio) in a `davincibox` container, with AMD (ROCm OpenCL) or NVIDIA GPU acceleration detected automatically
+  - `ujust install-claude-desktop`: Claude Desktop in `~/.local` with automatic updates
+  - `ujust silverlit-welcome`: show the first-login welcome again
+
+## Images
+
+| Image | For |
+|---|---|
+| `ghcr.io/thelinuxitguy/silverlit:latest` | AMD and Intel graphics |
+| `ghcr.io/thelinuxitguy/silverlit-nvidia:latest` | NVIDIA graphics (open kernel modules) |
+
+Both are rebuilt daily and signed with cosign.
 
 ## Installation / Rebasing
 
-From an existing Aurora or Fedora Atomic (Kinoite/Silverblue) installation, rebase to the signed `silverlit` image:
+From an existing Aurora or Fedora Atomic (Kinoite/Silverblue) installation, switch to SilverLIT (use `silverlit-nvidia` on NVIDIA systems):
 
 ```bash
 sudo bootc switch ghcr.io/thelinuxitguy/silverlit:latest
 systemctl reboot
 ```
 
-Verify the active deployment after rebooting:
+After the first boot into SilverLIT, switch once more to turn on signature verification for every future update:
+
+```bash
+sudo bootc switch --enforce-container-sigpolicy ghcr.io/thelinuxitguy/silverlit:latest
+systemctl reboot
+```
+
+Check the active deployment:
 
 ```bash
 sudo bootc status
 ```
 
----
+## Optional extras
 
-## Post-Install Procedures
+### DaVinci Resolve
 
-### 1. Apply Starship & Konsole Configs (Existing Home Directories)
+Blackmagic requires a free registration to download Resolve, so that one step stays manual:
 
-`/etc/skel` automatically seeds `~/.config/starship.toml` and Konsole profiles for newly created user accounts. If you rebased an existing user account whose home directory already existed, copy the skeleton files over:
+1. Download DaVinci Resolve or DaVinci Resolve Studio for Linux from [Blackmagic Design](https://www.blackmagicdesign.com/support/family/davinci-resolve-and-fusion) and extract the `.zip` into `~/Downloads`.
+2. Run `ujust install-davinci-resolve`. It finds the newest installer in `~/Downloads` automatically, or you can pass the path: `ujust install-davinci-resolve /path/to/DaVinci_Resolve_*_Linux.run`.
+3. On AMD, enable OpenCL in **DaVinci Resolve → Preferences → Memory and GPU** (the script prints the exact steps).
 
-```bash
-mkdir -p ~/.config ~/.local/share/konsole
-cp -n /etc/skel/.config/starship.toml ~/.config/starship.toml
-cp -n /etc/skel/.config/konsolerc ~/.config/konsolerc 2>/dev/null || true
-cp -n /etc/skel/.local/share/konsole/* ~/.local/share/konsole/ 2>/dev/null || true
-```
-
-Open a new Konsole tab or reload your shell (`exec "$SHELL"`) to activate the Gruvbox Rainbow prompt.
-
----
-
-### 2. Install DaVinci Resolve Studio (AMD GPU)
-
-`SilverLIT` includes `setup-resolve-amd.sh` in `/usr/local/bin/` to automate creating the `davincibox` container, installing `rocm-opencl` and `clinfo`, extracting the Blackmagic installer, and running `setup-davinci`.
-
-1. **Download and extract the Linux installer:**
-   Download DaVinci Resolve Studio for Linux from [Blackmagic Design](https://www.blackmagicdesign.com/support/family/davinci-resolve-and-fusion) and extract the `.zip` archive into `~/Downloads` so the `.run` installer is located at:
-   ```text
-   /var/home/$USER/Downloads/DaVinci_Resolve_Studio_21.2_Linux/DaVinci_Resolve_Studio_21.2_Linux.run
-   ```
-
-2. **Run the automated setup script:**
-   ```bash
-   setup-resolve-amd.sh
-   ```
-   *(If your `.run` installer is in a different directory or uses a different version number, pass the path directly: `setup-resolve-amd.sh /path/to/DaVinci_Resolve_*_Linux.run`.)*
-
-3. **Enable OpenCL GPU Acceleration in DaVinci Resolve:**
-   - Launch **DaVinci Resolve** from the KDE Application Launcher.
-   - Open **DaVinci Resolve → Preferences → Memory and GPU**.
-   - Uncheck **Auto** next to **GPU processing mode** and select **OpenCL**.
-   - Under **GPU selection**, uncheck **Auto** if needed, ensure your **AMD Radeon Graphics** device is checked, click **Save**, and restart DaVinci Resolve.
-
----
-
-### 3. Install Claude Desktop
-
-To install Claude Desktop in `~/.local` with automatic update support:
+### Claude Desktop
 
 ```bash
-curl -fLO https://github.com/ajithakdev/claude-desktop-rpm/releases/latest/download/claude-desktop-rpm.sh
-chmod +x claude-desktop-rpm.sh && ./claude-desktop-rpm.sh install
+ujust install-claude-desktop
 ```
 
----
+This uses the installer from [ajithakdev/claude-desktop-rpm](https://github.com/ajithakdev/claude-desktop-rpm).
 
-### 4. Verify Pre-Installed Flatpaks
+## Customizing your prompt
 
-Confirm that background Flatpak installations (such as OBS Studio, Steam, Discord, and Audacity) have completed:
+SilverLIT uses `/usr/share/silverlit/starship.toml` unless you have your own `~/.config/starship.toml`. To customize it:
 
 ```bash
-flatpak list
+cp /usr/share/silverlit/starship.toml ~/.config/starship.toml
 ```
 
----
+## Updating
 
-## Updating the System
-
-To pull the latest `SilverLIT` image build and Flatpak updates:
+Updates happen automatically in the background. To update right away:
 
 ```bash
-sudo bootc upgrade
-flatpak update -y
-systemctl reboot
+ujust update
 ```
+
+## Repository layout
+
+| Path | Purpose |
+|---|---|
+| `recipes/common-modules.yml` | Modules shared by every variant |
+| `recipes/recipe.yml`, `recipes/recipe-nvidia.yml` | Per-variant base image |
+| `assets/` | README artwork |
+| `files/system/` | Files copied into the image root (use `/usr` or `/etc`, never `/usr/local` or `/var`) |
+| `files/justfiles/` | `ujust` recipes |
+| `files/scripts/` | Build-time scripts |

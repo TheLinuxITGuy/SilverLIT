@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+name: silverlit-nvidia
+description: SilverLIT for NVIDIA GPUs (Aurora with the open NVIDIA kernel modules).
+
+base-image: ghcr.io/ublue-os/aurora-nvidia-open
+image-version: stable
+
+modules:
+  - from-file: common-modules.yml

@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://schema.blue-build.org/module-list-v1.json
+# Modules shared by every SilverLIT variant (recipe.yml, recipe-nvidia.yml).
+modules:
+  - type: files
+    files:
+      - source: system
+        destination: /
+
+  - type: dnf
+    repos:
+      copr:
+        - atim/starship
+      files:
+        - https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+    install:
+      packages:
+        - brave-origin
+        - starship
+
+  # Nerd Font used by the Konsole profile and the Starship Gruvbox Rainbow prompt
+  - type: fonts
+    fonts:
+      nerd-fonts:
+        - JetBrainsMono
+
+  # ujust install-davinci-resolve / install-claude-desktop / silverlit-welcome
+  - type: justfiles
+    validate: true
+
+  - type: default-flatpaks
+    configurations:
+      - notify: true
+        scope: system
+        install:
+          - com.obsproject.Studio
+          - com.valvesoftware.Steam
+          - com.discordapp.Discord
+          - org.audacityteam.Audacity
+
+  - type: script
+    scripts:
+      - starship-zsh.sh
+      - branding.sh
+
+  - type: signing
