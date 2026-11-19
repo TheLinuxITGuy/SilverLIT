@@ -5,22 +5,30 @@ on:
 jobs:
   inspect:
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     permissions:
       contents: read
     steps:
-      - name: Dump branding files from the published image
+      - name: Wait for the PR image with the new branding
         run: |
-          docker run --rm --entrypoint /bin/bash ghcr.io/thelinuxitguy/silverlit:latest -c '
-            show() { for f in "$@"; do echo "===== $f"; if [ -f "$f" ] && grep -Iq . "$f"; then cat "$f"; else ls -la "$f"; fi; done; }
-            show /usr/lib/os-release /usr/share/ublue-os/image-info.json /etc/xdg/kcm-about-distrorc /usr/share/kcm-about-distrorc
-            echo "===== etc/xdg"; ls /etc/xdg
-            echo "===== fastfetch files"; find /usr/share /etc -path "*fastfetch*" -type f 2>/dev/null | head -40
-            for f in $(find /usr/share/ublue-os /etc -path "*fastfetch*" -type f 2>/dev/null | head -8); do show "$f"; done
-            show /etc/profile.d/ublue-motd.sh /usr/bin/ublue-motd /usr/share/ublue-os/aurora-ascii-logo.txt
-            echo "===== who references fastfetch config / ascii logo / distributor-logo"
-            grep -rIl -E "aurora-ascii-logo|fastfetch.jsonc|distributor-logo|getaurora" /etc /usr/share/ublue-os /usr/bin /usr/libexec /usr/share/plasma /usr/share/kservices6 /usr/share/applications 2>/dev/null | head -60
-            echo "===== aurora named files"; find / -xdev -iname "*aurora*" -not -path "/proc/*" -not -path "/usr/share/icons/*" -not -path "/usr/share/wallpapers/*" -not -path "/usr/share/backgrounds/*" 2>/dev/null | head -80
-            echo "===== plymouth"; ls /usr/share/plymouth/themes 2>/dev/null; cat /etc/plymouth/plymouthd.conf 2>/dev/null
-            echo "===== sddm"; ls /usr/share/sddm/themes 2>/dev/null; cat /etc/sddm.conf.d/* 2>/dev/null | head -30
-            echo "===== kdeglobals"; cat /etc/xdg/kdeglobals 2>/dev/null | head -40
+          for i in $(seq 1 45); do
+            docker pull -q ghcr.io/thelinuxitguy/silverlit:pr-3-45 >/dev/null 2>&1 || true
+            if docker run --rm --entrypoint /bin/bash ghcr.io/thelinuxitguy/silverlit:pr-3-45 -c 'test -f /usr/share/silverlit/fastfetch-logo.txt'; then
+              echo "new image found"; exit 0
+            fi
+            sleep 60
+          done
+          exit 1
+      - name: Verify branding in the built image
+        run: |
+          docker run --rm -e TERM=xterm-256color --entrypoint /bin/bash ghcr.io/thelinuxitguy/silverlit:pr-3-45 -c '
+            echo "===== os-release"; cat /etc/os-release
+            echo "===== image-info"; cat /usr/share/ublue-os/image-info.json
+            echo "===== kcm-about-distrorc"; cat /etc/xdg/kcm-about-distrorc; ls -la /usr/share/pixmaps/silverlit-logo.png
+            echo "===== ublue-image-info.sh"; cat /usr/bin/ublue-image-info.sh; /usr/bin/ublue-image-info.sh
+            echo "===== ublue-fastfetch"; cat /usr/bin/ublue-fastfetch
+            echo "===== fastfetch"; fastfetch --pipe false --config /usr/share/ublue-os/fastfetch.jsonc 2>&1 | head -40
+            echo "===== motd"; HOME=/tmp ublue-motd 2>&1 | head -40
+            echo "===== starship config check"; STARSHIP_CONFIG=/usr/share/silverlit/starship.toml starship prompt 2>&1 | head -5
+            echo "===== remaining Aurora mentions in our branded files"; grep -n -i aurora /etc/os-release /usr/share/ublue-os/image-info.json /etc/xdg/kcm-about-distrorc /usr/share/ublue-os/motd/template.md /usr/share/ublue-os/motd/tips/*.md /usr/share/ublue-os/fastfetch.jsonc || echo none
           '
