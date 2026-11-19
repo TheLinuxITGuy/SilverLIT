@@ -26,7 +26,7 @@ Automatically installed from Flathub on first boot via `default-flatpaks`:
 
 1. Switch to the signed image:
    ```bash
-   sudo bootc switch ghcr.io/thelinuxitguy/silverlit:stable
+   sudo bootc switch ghcr.io/thelinuxitguy/silverlit:latest
    ```
 2. Reboot to complete the switch:
    ```bash
@@ -39,7 +39,7 @@ If you are rebasing from a stock Fedora Atomic image that does not yet have this
 
 1. Rebase to the unsigned image first to install the signing policy and public key:
    ```bash
-   rpm-ostree rebase ostree-unverified-registry:ghcr.io/thelinuxitguy/silverlit:stable
+   rpm-ostree rebase ostree-unverified-registry:ghcr.io/thelinuxitguy/silverlit:latest
    ```
 2. Reboot:
    ```bash
@@ -47,7 +47,7 @@ If you are rebasing from a stock Fedora Atomic image that does not yet have this
    ```
 3. Rebase to the signed image:
    ```bash
-   rpm-ostree rebase ostree-image-signed:docker://ghcr.io/thelinuxitguy/silverlit:stable
+   rpm-ostree rebase ostree-image-signed:docker://ghcr.io/thelinuxitguy/silverlit:latest
    ```
 4. Reboot again:
    ```bash
@@ -77,7 +77,7 @@ For proprietary or Debian-only tools that are best kept outside the base OS imag
 You can generate an offline installer ISO from any Fedora Atomic host using the [BlueBuild ISO instructions](https://blue-build.org/how-to/generate-iso/#_top):
 
 ```bash
-bluebuild generate-iso --iso-name silverlit.iso image ghcr.io/thelinuxitguy/silverlit:stable
+bluebuild generate-iso --iso-name silverlit.iso image ghcr.io/thelinuxitguy/silverlit:latest
 ```
 
 ---
@@ -87,5 +87,5 @@ bluebuild generate-iso --iso-name silverlit.iso image ghcr.io/thelinuxitguy/silv
 All images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). You can verify the image signature using the `cosign.pub` file in this repository:
 
 ```bash
-cosign verify --key cosign.pub ghcr.io/thelinuxitguy/silverlit:stable
+cosign verify --key cosign.pub ghcr.io/thelinuxitguy/silverlit:latest
 ```
