@@ -1,0 +1,21 @@
+name: lint
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ShellCheck on SilverLIT scripts
+        run: |
+          shellcheck --version
+          shellcheck \
+            files/scripts/*.sh \
+            files/system/etc/profile.d/*.sh \
+            files/system/usr/bin/* \
+            files/system/usr/libexec/*

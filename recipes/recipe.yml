@@ -2,44 +2,8 @@
 name: silverlit
 description: Custom image based on Aurora from the uBlue team, but with The Linux IT Guy's personal taste.
 
-# Change to aurora-dx, aurora-nvidia, or aurora-dx-nvidia if applicable
 base-image: ghcr.io/ublue-os/aurora
 image-version: stable
 
 modules:
-  - type: files
-    files:
-      - source: system
-        destination: /
-
-  - type: dnf
-    repos:
-      copr:
-        - atim/starship
-      files:
-        - https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
-    install:
-      packages:
-        - brave-origin
-        - starship
-
-  - type: default-flatpaks
-    configurations:
-      - notify: true
-        scope: system
-        install:
-          - com.obsproject.Studio
-          - com.valvesoftware.Steam
-          - com.discordapp.Discord
-          - org.audacityteam.Audacity
-      - scope: user
-
-  - type: script
-    snippets:
-      - |
-        echo 'eval "$(starship init bash)"' >> /etc/bashrc
-        if [ -f /etc/zshrc ]; then
-          echo 'eval "$(starship init zsh)"' >> /etc/zshrc
-        fi
-
-  - type: signing
+  - from-file: common-modules.yml

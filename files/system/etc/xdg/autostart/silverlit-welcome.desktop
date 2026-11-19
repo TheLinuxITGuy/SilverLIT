@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SilverLIT Welcome
+Comment=Shows a one-time welcome with the SilverLIT extras
+Exec=/usr/libexec/silverlit-welcome
+OnlyShowIn=KDE;
+NoDisplay=true
+X-KDE-autostart-phase=2

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# One-time welcome dialog shown at a user's first login on SilverLIT.
+# Run with --force (or `ujust silverlit-welcome`) to show it again.
+set -euo pipefail
+
+marker="${XDG_STATE_HOME:-$HOME/.local/state}/silverlit/welcome-shown"
+if [[ -f "$marker" && "${1:-}" != "--force" ]]; then
+    exit 0
+fi
+mkdir -p "$(dirname "$marker")"
+# Mark first so the dialog never repeats, even if the session is closed while it's open.
+touch "$marker"
+
+# Give the desktop a moment to settle after login.
+[[ "${1:-}" == "--force" ]] || sleep 10
+
+read -r -d '' message <<'MSG' || true
+<h3>Welcome to SilverLIT!</h3>
+<p>Your system is set up and updates itself automatically in the background.
+OBS Studio, Steam, Discord and Audacity are being installed now and will
+appear in your app launcher shortly.</p>
+<p><b>Optional extras</b> (run in Konsole):</p>
+<ul>
+<li><code>ujust install-davinci-resolve</code>: DaVinci Resolve with GPU acceleration</li>
+<li><code>ujust install-claude-desktop</code>: Claude Desktop</li>
+<li><code>ujust</code>: browse every available command</li>
+</ul>
+MSG
+
+if command -v kdialog >/dev/null 2>&1; then
+    kdialog --title "Welcome to SilverLIT" --msgbox "$message"
+elif command -v notify-send >/dev/null 2>&1; then
+    notify-send --app-name=SilverLIT "Welcome to SilverLIT" \
+        "Run 'ujust' in a terminal to see optional extras like DaVinci Resolve and Claude Desktop."
+fi
