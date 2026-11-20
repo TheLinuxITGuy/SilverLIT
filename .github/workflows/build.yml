@@ -4,9 +4,9 @@ on:
     - cron:
         "00 06 * * *" # build at 06:00 UTC every day
         # (20 minutes after last ublue images start building)
+  # No paths-ignore: the build jobs are required status checks on main, so they
+  # must run on every push and PR (a skipped required check blocks merging).
   push:
-    paths-ignore: # don't rebuild if only documentation has changed
-      - "**.md"
 
   pull_request:
   workflow_dispatch: # allow manually triggering builds
@@ -36,6 +36,10 @@ jobs:
           recipe: ${{ matrix.recipe }}
           cosign_private_key: ${{ secrets.SIGNING_SECRET }}
           registry_token: ${{ github.token }}
+          # Dependabot (and fork) PRs don't get repository secrets, so there is no
+          # signing key: build the image to prove it still works, but don't sign or push it.
+          push: ${{ secrets.SIGNING_SECRET != '' }}
+          build_opts: ${{ secrets.SIGNING_SECRET == '' && '--no-sign' || ' ' }}
           pr_event_number: ${{ github.event.number }}
 
           # enabled by default, disable if your image is small and you want faster builds
